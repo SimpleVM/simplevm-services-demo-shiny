@@ -1,0 +1,49 @@
+---
+- name: Deploy simple Shiny app
+  hosts: shiny_hosts
+  become: true
+
+  vars:
+    repo_url: "https://github.com/milo39/shiny-demo.git"
+    repo_dest: "/home/{{ ansible_user }}/shiny-demo"
+    repo_version: "main"
+    app_port: 3838
+
+  tasks:
+    - name: apt update
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install r-base
+      ansible.builtin.apt:
+        name:
+          - r-base
+        state: present
+
+    - name: Install Shiny in R as root
+      ansible.builtin.shell: |
+        R -e "install.packages('shiny')"
+      args:
+        creates: /usr/local/lib/R/site-library/shiny
+
+    - name: Pull repository into home directory
+      become: false
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ repo_dest }}"
+        version: "{{ repo_version }}"
+        update: true
+        force: true
+
+    - name: Stop any previous Shiny app on port 3838 if running
+      ansible.builtin.shell: |
+        pkill -f "shiny::runApp\(host='0.0.0.0', port={{ app_port }}\)" || true
+      changed_when: false
+
+    - name: Start Shiny app in the background on port 3838
+      become: false
+      ansible.builtin.shell: |
+        nohup R -e "shiny::runApp(appDir='/home/ubuntu/shiny-demo/app', host='0.0.0.0', port={{ app_port }})" \
+          > "{{ repo_dest }}/shiny.log" 2>&1 &
+      args:
+        chdir: "{{ repo_dest }}"
