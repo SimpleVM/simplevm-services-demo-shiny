@@ -4,7 +4,7 @@
   become: true
 
   vars:
-    repo_url: "https://github.com/milo39/shiny-demo.git"
+    repo_url: "https://github.com/SimpleVM/simplevm-services-demo-shiny.git"
     repo_dest: "/home/{{ ansible_user }}/shiny-demo"
     repo_version: "main"
     app_port: 3838
