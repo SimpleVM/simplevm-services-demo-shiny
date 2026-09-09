@@ -1,5 +1,7 @@
 library(shiny)
 
+base_path <- Sys.getenv("SHINY_BASE_PATH", "/")
+
 ui <- fluidPage(
   titlePanel("SimpleVM Services - Shiny Demo"),
   
@@ -44,4 +46,15 @@ server <- function(input, output) {
   })
 }
 
-shinyApp(ui = ui, server = server)
+#subpath routing
+ui_pattern <- if (base_path == "/") {
+  "/"
+} else {
+  paste0(base_path, "/?")
+}
+
+shinyApp(
+  ui = ui,
+  server = server,
+  uiPattern = ui_pattern
+)

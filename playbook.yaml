@@ -8,23 +8,19 @@
     repo_dest: "/home/{{ ansible_user }}/shiny-demo"
     repo_version: "main"
     app_port: 3838
+    app_base_url: "shiny_100" #adjust to subpath
 
   tasks:
     - name: apt update
       ansible.builtin.apt:
         update_cache: true
 
-    - name: Install r-base
+    - name: Install R and Shiny
       ansible.builtin.apt:
         name:
           - r-base
+          - r-cran-shiny
         state: present
-
-    - name: Install Shiny in R as root
-      ansible.builtin.shell: |
-        R -e "install.packages('shiny')"
-      args:
-        creates: /usr/local/lib/R/site-library/shiny
 
     - name: Pull repository into home directory
       become: false
@@ -35,15 +31,37 @@
         update: true
         force: true
 
-    - name: Stop any previous Shiny app on port 3838 if running
-      ansible.builtin.shell: |
-        pkill -f "shiny::runApp\(host='0.0.0.0', port={{ app_port }}\)" || true
-      changed_when: false
+    - name: Create systemd service file
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/shiny-app.service
+        content: |
+          [Unit]
+          Description=Shiny Application Service
+          After=network.target
 
-    - name: Start Shiny app in the background on port 3838
-      become: false
-      ansible.builtin.shell: |
-        nohup R -e "shiny::runApp(appDir='/home/ubuntu/shiny-demo/app', host='0.0.0.0', port={{ app_port }})" \
-          > "{{ repo_dest }}/shiny.log" 2>&1 &
-      args:
-        chdir: "{{ repo_dest }}"
+          [Service]
+          Type=simple
+          User={{ ansible_user }}
+          WorkingDirectory={{ repo_dest }}
+          Environment="SHINY_BASE_PATH={{ app_base_url }}"
+          ExecStart=/usr/bin/Rscript -e "shiny::runApp(appDir='{{ repo_dest }}/app', host='0.0.0.0', port={{ app_port }})"
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Enable Shiny app service to start on boot
+      ansible.builtin.systemd:
+        name: shiny-app
+        enabled: true
+
+    - name: Start and restart Shiny app service
+      ansible.builtin.systemd:
+        name: shiny-app
+        state: restarted
