@@ -6,9 +6,11 @@
   vars:
     repo_url: "https://github.com/SimpleVM/simplevm-services-demo-shiny.git"
     repo_dest: "/home/{{ ansible_user }}/shiny-demo"
-    repo_version: "main"
+    repo_version: "fix/deployment"
     app_port: 3838
-    app_base_url: "shiny_100" #adjust to subpath
+    app_base_url: "/shiny_100" #adjust to subpath
+    shiny_server_deb_url: "https://download3.rstudio.org/ubuntu-20.04/x86_64/shiny-server-1.5.23.1030-amd64.deb"
+    shiny_server_deb_path: "/tmp/shiny-server.deb"
 
   tasks:
     - name: apt update
@@ -31,37 +33,29 @@
         update: true
         force: true
 
-    - name: Create systemd service file
-      ansible.builtin.copy:
-        dest: /etc/systemd/system/shiny-app.service
-        content: |
-          [Unit]
-          Description=Shiny Application Service
-          After=network.target
+    - name: Install gdebi-core
+      ansible.builtin.apt:
+        name: gdebi-core
+        state: present
 
-          [Service]
-          Type=simple
-          User={{ ansible_user }}
-          WorkingDirectory={{ repo_dest }}
-          Environment="SHINY_BASE_PATH={{ app_base_url }}"
-          ExecStart=/usr/bin/Rscript -e "shiny::runApp(appDir='{{ repo_dest }}/app', host='0.0.0.0', port={{ app_port }})"
-          Restart=always
-          RestartSec=5
+    - name: Download Shiny Server
+      ansible.builtin.get_url:
+        url: "{{ shiny_server_deb_url }}"
+        dest: "{{ shiny_server_deb_path }}"
 
-          [Install]
-          WantedBy=multi-user.target
-        mode: '0644'
+    - name: Install Shiny Server
+      ansible.builtin.shell: "gdebi -n {{ shiny_server_deb_path }}"
+      args:
+        creates: /usr/bin/shiny-server
 
-    - name: Reload systemd
+    - name: Create symbolic link for Shiny app
+      ansible.builtin.file:
+        src: "{{ repo_dest }}/app"
+        dest: "/srv/shiny-server{{ app_base_url }}"
+        state: link
+
+    - name: Ensure Shiny Server is started and enabled
       ansible.builtin.systemd:
-        daemon_reload: true
-
-    - name: Enable Shiny app service to start on boot
-      ansible.builtin.systemd:
-        name: shiny-app
+        name: shiny-server
+        state: started
         enabled: true
-
-    - name: Start and restart Shiny app service
-      ansible.builtin.systemd:
-        name: shiny-app
-        state: restarted
