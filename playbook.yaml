@@ -5,8 +5,8 @@
 
   vars:
     repo_url: "https://github.com/SimpleVM/simplevm-services-demo-shiny.git"
-    repo_dest: "/home/{{ ansible_user }}/shiny-demo"
-    repo_version: "fix/deployment"
+    repo_dest: "/srv/shiny-server/shiny_100_repo"
+    repo_version: "main"
     app_port: 3838
     app_base_url: "/shiny_100" #adjust to subpath
     shiny_server_deb_url: "https://download3.rstudio.org/ubuntu-20.04/x86_64/shiny-server-1.5.23.1030-amd64.deb"
@@ -24,8 +24,7 @@
           - r-cran-shiny
         state: present
 
-    - name: Pull repository into home directory
-      become: false
+    - name: Pull repository into service directory
       ansible.builtin.git:
         repo: "{{ repo_url }}"
         dest: "{{ repo_dest }}"
@@ -59,3 +58,10 @@
         name: shiny-server
         state: started
         enabled: true
+
+    - name: Fix ownership for shiny user
+      ansible.builtin.file:
+        path: /srv/shiny-server
+        owner: shiny
+        group: shiny
+        recurse: true
