@@ -2,7 +2,12 @@
 
 **QUICKSTART:**
 
-Create a inventory.ini in which you specify the VMs on which you want to deploy this to and run this command:
+To deploy the application to the local machine for testing:
+```
+ansible-playbook playbook.yaml -i inventory_localhost.ini
+```
+
+To deploy to a remote VM, create an `inventory.ini` file specifying the target hosts and run:
 ```
 ansible-playbook playbook.yaml -i inventory.ini
 ```
