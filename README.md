@@ -12,7 +12,7 @@ To deploy to a remote VM, create an `inventory.ini` file specifying the target h
 ansible-playbook playbook.yaml -i inventory.ini
 ```
 
-By default the app is served under the subpath `/shiny_100`. To use a different subpath, pass `app_base_url` via `-e`:
+By default the app is served under the subpath `/shiny_100`. The playbook automatically reads the subpath from the SimpleVM metadata, if the metadata propagation is active (`location_url` in `/etc/simplevm/metadata.json`). To override it manually, pass `app_base_url` via `-e`:
 ```
 ansible-playbook playbook.yaml -i inventory.ini -e "app_base_url=/shiny_42"
 ```

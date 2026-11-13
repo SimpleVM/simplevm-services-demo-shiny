@@ -13,6 +13,21 @@
     shiny_server_deb_path: "/tmp/shiny-server.deb"
 
   tasks:
+    - name: Fetch latest SimpleVM metadata
+      ansible.builtin.shell: bash /etc/simplevm/utils/get_metadata.sh
+      changed_when: true
+
+    - name: Read location_url from metadata.json
+      ansible.builtin.set_fact:
+        location_url_from_metadata: "{{ (lookup('file', '/etc/simplevm/metadata.json', errors='ignore') | default('', true) | from_json | default({})).location_url | default(omit) }}"
+
+    - name: Use location_url from metadata as subpath
+      ansible.builtin.set_fact:
+        app_base_url: "{{ location_url_from_metadata }}"
+      when:
+        - location_url_from_metadata is defined
+        - app_base_url == "/shiny_100"
+
     - name: apt update
       ansible.builtin.apt:
         update_cache: true
