@@ -5,7 +5,7 @@
 
   vars:
     repo_url: "https://github.com/SimpleVM/simplevm-services-demo-shiny.git"
-    repo_dest: "/srv/shiny-server/shiny_repo"
+    repo_dest: "/srv/shiny-server/shiny_100_repo"
     repo_version: "fix/deployment"
     app_port: 3838
     location_url: "/shiny_100" #default subpath; override with: -e "location_url=/shiny_42"
